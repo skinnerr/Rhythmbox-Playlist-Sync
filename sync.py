@@ -2,6 +2,7 @@ from xml.dom import minidom
 import os.path
 import urllib
 import itertools
+import shutil
 
 
 def parse_rbox_playlists(rbox_playlist_path, playlists_to_sync):
@@ -15,7 +16,7 @@ def parse_rbox_playlists(rbox_playlist_path, playlists_to_sync):
     # Parameters to return
     n_files = 0
     n_files_found = 0
-    all_file_names = list()
+    all_file_paths = list()
 
     xmldoc = minidom.parse(rbox_playlist_path)
     allplaylists = xmldoc.getElementsByTagName('rhythmdb-playlists')[0]
@@ -23,8 +24,7 @@ def parse_rbox_playlists(rbox_playlist_path, playlists_to_sync):
     for pl in playlists:
         plname = pl.getAttribute('name')
         if plname in playlists_to_sync:
-            fnames = list()
-            print 'Playlist:', plname
+            fpaths = list()
             targets = pl.getElementsByTagName('location')
             for target in targets:
                 target = target.firstChild.data
@@ -35,21 +35,34 @@ def parse_rbox_playlists(rbox_playlist_path, playlists_to_sync):
                     print 'File not found:', fpath
                     continue
                 n_files_found += 1
-                fname = fpath.split('/')[-1]
-                fnames.append(fname)
-            all_file_names.append(fnames)
-    return all_file_names
+                fpaths.append(fpath)
+            all_file_paths.append(fpaths)
+    return all_file_paths
 
 
-def sync(directory_path, playlist_names, file_names):
+def sync_files(dest, file_paths_to_sync):
+    nsynced = 0
+    files_on_device = os.listdir(dest)
+    for src in file_paths_to_sync:
+        fname = src.split('/')[-1]
+        if fname not in files_on_device:
+            print 'not on device:', fname
+            try:
+                shutil.copy(src, dest)
+            except:
+                print 'oops, exception'
 
-    uniq_file_names = list(set(itertools.chain(*file_names)))
-    print uniq_file_names
-    print len(uniq_file_names)
+    return
 
-    sync_files(directory_path, uniq_file_names)
 
-    sync_playlists(directory_path, playlist_names, file_names)
+def sync(directory_path, playlist_names, file_paths):
+
+    uniq_file_paths = list(set(itertools.chain(*file_paths))) #TODO: maybe not necessary to list()
+    print 'Unique file paths to sync:', len(uniq_file_paths)
+
+    sync_files(directory_path, uniq_file_paths)
+
+    #sync_playlists(directory_path, playlist_names, file_paths)
 
 ####################################################################
 ####################################################################
@@ -57,7 +70,7 @@ def sync(directory_path, playlist_names, file_names):
 
 playlists = ['Nature Sounds']
 rb_path = 'playlists.xml'
-nested_song_list = parse_rbox_playlists(rb_path, playlists)
-
 sync_path = 'music/'
-sync(sync_path, playlists, nested_song_list)
+nested_song_path_list = parse_rbox_playlists(rb_path, playlists)
+
+sync(sync_path, playlists, nested_song_path_list)
