@@ -2,6 +2,7 @@ from xml.dom import minidom
 import os.path
 import urllib
 import itertools
+import shutil
 
 
 def parse_rbox_playlists(rbox_playlist_path, playlists_to_sync):
@@ -49,7 +50,8 @@ def sync_files(dest_dir, file_paths_to_sync):
         fnames.append(fname)
         if fname not in files_on_device:
             try:
-                os.symlink(src, os.path.join(dest_dir, fname))
+                #os.symlink(src, os.path.join(dest_dir, fname))
+                shutil.copy(src, os.path.join(dest_dir, fname))
                 nsynced += 1
             except OSError as e:
                 print 'Unable to create symlink:', src
@@ -97,7 +99,7 @@ def sync(directory_path, playlist_names, file_paths):
 
 playlists = ['Nature Sounds', 'Android Sync', 'Bump It', 'Bon Iver', 'Random']
 rb_path = '/home/ryan/.local/share/rhythmbox/playlists.xml'
-sync_path = 'music'
+sync_path = '/home/ryan/Music/000_Sync'
 [playlists, nested_song_path_list] = parse_rbox_playlists(rb_path, playlists)
 
 sync(sync_path, playlists, nested_song_path_list)
